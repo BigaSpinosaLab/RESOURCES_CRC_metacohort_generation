@@ -59,6 +59,8 @@ library(sva) # ComBat
 library(frma)
 library(hgu133plus2frmavecs) 
 library(ggplot2)
+library(CMSclassifier)
+library(org.Hs.eg.db)
 
 
 #------------------------------------------------------------------------------#
@@ -66,7 +68,7 @@ library(ggplot2)
 #------------------------------------------------------------------------------#
 
 
-setwd("/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/CEL_Files")
+setwd("/CEL_Files")
 
 data_names <- c("GSE14333", "GSE143985", "GSE17536", "GSE17537",
                 "GSE33114", "GSE38832", "GSE39582")
@@ -84,10 +86,10 @@ lapply(data_names, function(x){
 
 ### "Pheno_data_filt.txt" file (1118 samples) --> "clinical_data_extraction.R"
 
-pheno.data <- read.delim("/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/filtered_txt_files/pheno_data_filt.txt", sep = "\t")
-dd <- readRDS("/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/date_GSM.rds")
+pheno.data <- readRDS("pheno_data_august2025.rds")
+dd <- readRDS("date_GSM.rds")
 
-setwd("/home/user/Downloads/CEL_Files")
+setwd("/CEL_Files")
 celfiles <-list.files()
 
 ## Only Useful Data
@@ -104,12 +106,12 @@ celfiles <- celfiles[celfiles.GSM %in% rownames(pheno.data)]
 
 ### fRMA (need dates/GSM from "date_extraction.R")
 data_f.eset <- data.frame("Omit" = rep(NA, 54676))
-setwd("/home/user/Downloads/CEL_Files")
+setwd("/CEL_Files")
 
-# Select x date
+# Select x dataset
 for (dataset in unique(dd$dataset)) {
   
-  # Select celfiles that were analyzed on x date
+  # Select celfiles that were analyzed on x dataset
   GSM <- dd[dd$dataset %in% dataset,]
   GSM <- GSM$GSM
   
@@ -150,6 +152,7 @@ rownames2 <- lapply(rownames(data_eset), function(x) {
 rownames <- rownames(data_eset)
 rownames(data_eset) <- rownames2
 
+
 #------------------------------------------------------------------------------#
 ###########################   Jetset Scoring   #################################
 #------------------------------------------------------------------------------#
@@ -174,6 +177,7 @@ data_eset_anot <- merge(Annot_score, data_eset, by.x=0, by.y=0, all.y=T)
 row.names(data_eset_anot) <- data_eset_anot$Row.names
 data_eset_anot$Row.names <- NULL
 data_eset_anot$probe_id <- rownames(data_eset_anot)
+
 
 #------------------------------------------------------------------------------#
 ##################              PCA (Pre-Combat)             ###################
@@ -218,7 +222,7 @@ plot2 <- plot2 +
   xlim(xlim_vector2) +
   ylim(ylim_vector2)
 
-pdf("/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/Exploratory graphs/FINAL_PLOTS/PCA_All_datasets_fRMA_Dataset.pdf", 
+pdf("/FINAL_PLOTS/PCA_All_datasets_fRMA_Dataset.pdf", 
     height = 5, width = 6)
 plot(plot2)
 dev.off()
@@ -235,6 +239,7 @@ exprs.data <- merge(Annot_score, combat.data, by.x=0, by.y=0, all.y=T)
 row.names(exprs.data) <- exprs.data$Row.names
 exprs.data$Row.names <- NULL
 exprs.data$probe_id <- rownames(exprs.data)
+
 
 #------------------------------------------------------------------------------#
 ##################             PCA (Post-Combat)             ###################
@@ -279,18 +284,55 @@ plot2 <- plot2 +
   xlim(xlim_vector2) +
   ylim(ylim_vector2)
 
-pdf("/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/Exploratory graphs/FINAL_PLOTS/PCA_All_datasets_fRMA_Dataset_ComBat.pdf", 
+pdf("/FINAL_PLOTS/PCA_All_datasets_fRMA_Dataset_ComBat.pdf", 
     height = 5, width = 6)
 plot(plot2)
 dev.off()
 
+
+#------------------------------------------------------------------------------#
+###############################  CMS classifier ################################
+#------------------------------------------------------------------------------#
+
+
+exprs.data.mean <- cbind(exprs.data[c(1:3)], "mean" = rowMeans(exprs.data[,-c(1:3)]))
+exprs.data.mean <- exprs.data.mean %>%
+  group_by(symbol) %>%
+  dplyr::slice(which.max(mean)) 
+exprs.data.selected <- exprs.data[exprs.data$probe_id %in% exprs.data.mean$probe_id,]
+exprs.data.selected <- exprs.data.selected[which(!is.na(exprs.data.selected$symbol)),]
+
+# FROM SYMBOL TO ENTREZ
+hs <- org.Hs.eg.db
+my.symbols <- exprs.data.selected$symbol
+symbol_entrez <- select(hs, 
+                        keys = my.symbols,
+                        columns = c("ENTREZID", "SYMBOL"),
+                        keytype = "SYMBOL")
+colnames(symbol_entrez) <- c("symbol", "entrezid")
+
+exprs.data.selected <- merge(symbol_entrez, exprs.data.selected, by ="symbol")
+rownames(exprs.data.selected) <- exprs.data.selected$entrezid
+exprs.data.selected <- exprs.data.selected[,-c(1:4)]
+
+#CMS
+set.seed(123)
+Rfcms <- CMSclassifier::classifyCMS(exprs.data.selected,method="RF")[[3]]
+SScms <- CMSclassifier::classifyCMS(exprs.data.selected,method="SSP")[[3]]
+
+finalModel
+# Call:
+#  randomForest(x = x[idxs, ], y = y[idxs], ntree = 1L, importance = TRUE) 
+#                Type of random forest: classification
+#                      Number of trees: 100
+# No. of variables tried at each split: 16
+
+pheno.data$cms <- Rfcms$RF.predictedCMS
+table(pheno.data$cms)
+
 #------------------------------------------------------------------------------#
 ###############################   Save .RData   ################################
 #------------------------------------------------------------------------------#
-
-# Change fRMA/RMA 
-save(exprs.data, pheno.data, file = "/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/Results_Files/fRMA_Metacohort_byDataset/CRC_Filtered_MetaCohort_fRMAbyDataset_July_2024.RData")
-
-
-
+ 
+save(exprs.data, pheno.data, file = "CRC_metacohort_August_2025.RData")
 
