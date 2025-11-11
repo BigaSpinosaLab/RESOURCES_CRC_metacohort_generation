@@ -115,6 +115,9 @@
   tp53_mut <- GSE143985_RAW[17,]
   tp53_mut <- gsub("tp53_mutation: ", "", tp53_mut)
   
+  msi_status <- GSE143985_RAW[18,]
+  msi_status <- gsub("msi_status: ", "", msi_status)
+  
   GSE143985_CD <- data.frame("dataset"=dataset,
                              "stage"=stage, 
                              "dfs_event"=dfs_event, 
@@ -123,7 +126,8 @@
                              "chemo"=chemo,
                              "braf_mut"=braf_mut,
                              "kras_mut"=kras_mut,
-                             "tp53_mut"=tp53_mut)
+                             "tp53_mut"=tp53_mut,
+                             "msi_status"=msi_status)
   
   GSE143985_CD <- t(GSE143985_CD)
   
@@ -376,6 +380,9 @@
   tp53_mut <- GSE39582_RAW[27,]
   tp53_mut <- gsub(".*: ", "", tp53_mut)
   
+  msi_status <- GSE39582_RAW[24,]
+  msi_status <- gsub(".*: ", "", msi_status)
+  
   GSE39582_CD <- data.frame("dataset"=dataset,
                             "age" = age,
                             "gender"=gender, 
@@ -388,7 +395,8 @@
                             "chemo"=chemo,
                             "braf_mut"=braf_mut,
                             "kras_mut"=kras_mut,
-                            "tp53_mut"=tp53_mut)
+                            "tp53_mut"=tp53_mut,
+                            "msi_status"=msi_status)
   GSE39582_CD <- t(GSE39582_CD)
   
   colnames(GSE39582_CD) <- Samples
@@ -474,3 +482,76 @@ df <- df %>%
 
 
 
+## V2. Pheno.data with detailed info about location 
+homogenize_variables_detailed <- function(df) {
+  df <- df %>%
+    mutate(gender = case_when(gender == "m" | gender == "male" | gender == "Male" | gender == "M" ~ "M",
+                              gender == "f" | gender == "female" | gender == "Female" | gender == "F" ~ "F")) %>%
+    mutate(gender = factor(gender, levels = c("M", "F"))) %>%
+    
+    mutate(dfs_event = case_when(dfs_event == "yes" | dfs_event == "Yes" | dfs_event == "1" | dfs_event == "1 (cancer recurrence)" | dfs_event == "recurrence" | dfs_event == "Y" ~ "1",
+                                 dfs_event == "no" | dfs_event == "No" | dfs_event == "0" | dfs_event == "0 (no recurrence)" | dfs_event == "no recurrence" | dfs_event == "N" ~ "0")) %>%
+    mutate(dfs_event = factor(dfs_event, levels = c("1", "0")))%>%  
+    
+    mutate(dss_event = case_when(dss_event == "1 (death from cancer)" | dss_event == "death" ~ "1",
+                                 dss_event == "0 (no death)" | dss_event == "no death" ~ "0")) %>%
+    mutate(dss_event = factor(dss_event, levels = c("1", "0")))%>%
+    
+    mutate(braf_mut = case_when(braf_mut == "yes" | braf_mut == "Yes" | braf_mut == "1" | braf_mut == "Y" | braf_mut == "M" ~ "1",
+                                braf_mut == "no" | braf_mut == "No" | braf_mut == "0" | braf_mut == "N"| braf_mut == "WT" ~ "0")) %>%
+    mutate(braf_mut = factor(braf_mut, levels = c("1", "0")))%>%
+    
+    mutate(kras_mut = case_when(kras_mut == "yes" | kras_mut == "Yes" | kras_mut == "1" | kras_mut == "Y" | kras_mut == "M" ~ "1",
+                                kras_mut == "no" | kras_mut == "No" | kras_mut == "0" | kras_mut == "N"| kras_mut == "WT" ~ "0")) %>%
+    mutate(kras_mut = factor(kras_mut, levels = c("1", "0")))%>%
+    
+    mutate(tp53_mut = case_when(tp53_mut == "yes" | tp53_mut == "Yes" | tp53_mut == "1" | tp53_mut == "Y" | tp53_mut == "M" ~ "1",
+                                tp53_mut == "no" | tp53_mut == "No" | tp53_mut == "0" | tp53_mut == "N"| tp53_mut == "WT" ~ "0")) %>%
+    mutate(tp53_mut = factor(tp53_mut, levels = c("1", "0")))%>%
+    
+    mutate(msi_status = case_when(msi_status == "MSI_H" | msi_status == "dMMR" ~ "High",
+                                  msi_status == "MSS" | msi_status == "pMMR" ~ "MSS_Low",
+                                  TRUE ~ NA)) %>%
+    mutate(msi_status = factor(msi_status, levels = c("High", "MSS_Low")))%>%
+    
+    
+    mutate(chemo = case_when(chemo == "yes" | chemo == "Yes" | chemo == "1" | chemo == "Y" | chemo == "M" ~ "1",
+                             chemo == "no" | chemo == "No" | chemo == "0" | chemo == "N"| chemo == "WT" ~ "0")) %>%
+    mutate(chemo = factor(chemo, levels = c("1", "0")))%>%
+    
+    mutate(radio = case_when(radio == "yes" | radio == "Yes" | radio == "1" | radio == "Y" | radio == "M" ~ "1",
+                             radio == "no" | radio == "No" | radio == "0" | radio == "N"| radio == "WT" ~ "0")) %>%
+    mutate(radio = factor(radio, levels = c("1", "0")))%>%
+    
+    mutate(stage = case_when(stage == "1" | stage == "A" ~ "1",
+                             stage == "2" | stage == "B" ~ "2",
+                             stage == "3" | stage == "C" ~ "3",
+                             stage == "4" | stage == "D" ~ "4")) %>%
+    mutate(stage = factor(stage, levels = c("1", "2", "3", "4")))%>%
+    
+    mutate(location_colon = case_when(location == "right" | location == "Right"  | location == "proximal" | location == "Proximal" ~ "Right",
+                                location == "left" | location == "Left" | location == "distal" | location == "Distal" ~ "Left",
+                                location == " " | location == "NA" | location == "Rectum" | location == "Colon" ~ NA)) %>%
+    
+    mutate(colon_rectum = case_when(location == "right" | location == "Right" | location == "distal" | location == "Distal" | 
+                                location == "left" | location == "Left" | location == "Colon" | location == "proximal" | location == "Proximal" ~ "Colon",
+                                location == "Rectum" ~ "Rectum",
+                                location == " " | location == "NA" ~ NA)) %>%
+    
+    mutate(location_mod = case_when(location == "right" | location == "Right"  | location == "proximal" | location == "Proximal" ~ "Proximal",
+                                location == "left" | location == "Left" | location == "Rectum" | location == "distal" | location == "Distal" ~ "Distal",
+                                location == " " | location == "NA" | location == "Colon" ~ NA)) %>%
+    
+    mutate(first_author = case_when(dataset == "GSE14333" ~ "Jorissen RN",
+                                    dataset == "GSE143985" ~ "Shinto E",
+                                    dataset == "GSE17536" ~ "Smith JJ",
+                                    dataset == "GSE17537" ~ "Smith JJ",
+                                    dataset == "GSE33114" ~ "de Sousa E Melo F",
+                                    dataset == "GSE38832" ~ "Tripathi MK",
+                                    dataset == "GSE39582" ~ "Marisa L")) %>%
+    
+    
+    mutate(dfs_time = na_if(dfs_time, "NA")) %>%
+    mutate(dss_time = na_if(dss_time, "NA"))
+  
+}
