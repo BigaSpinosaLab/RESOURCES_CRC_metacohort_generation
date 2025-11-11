@@ -5,7 +5,7 @@ The “RESOURCES_CRC_metacohort_generation” repository contains the scripts th
 
 ### Dataset Information
 
-The CRC_metacohort_July_2024.Rdata file can be found in Zenodo (doi: 10.5281/zenodo.13303050) and contains two data frames enclosing the following information:
+The CRC_metacohort_August_2025.Rdata file can be found in Zenodo (doi: 10.5281/zenodo.13303049) and contains two data frames enclosing the following information:
 
 1. ‘pheno.data’ data frame includes patients phenotypic information. Rows refer to patients and columns to pheno variables. Disease free survival (DFS) time and event are available for all patients, but other variables might show missing values. 
 2. ‘exprs.data’  data frame includes normalized and batch corrected microarray expression data. Rows refer to microarray probes and columns to patients except for the first three colums that indicate corresponding probe id, gene symbol and Jetset score. 
@@ -22,7 +22,7 @@ The “scripts/” folder contains three R scripts:
 
 The “figures/” folder contains a pdf with a summarized description of the CRC metacohort, specifically: (i) workflow of the metacohort generation, (ii) summary table about main phenotypic variables included in the metacohort and (iii) first two principal components before and after applying batch removal.
 
-Please, if you use this CRC metacohort include the Zenodo citation (doi: 10.5281/zenodo.13303050).
+Please, if you use this CRC metacohort include the Zenodo citation (doi: 10.5281/zenodo.13303049).
 
 
 ### References
