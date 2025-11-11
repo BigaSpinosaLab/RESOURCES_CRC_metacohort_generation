@@ -21,7 +21,7 @@ library(affyio)
 ####         1. Source Functions          #### 
 #--------------------------------------------#
 
-source("/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/scripts/Metacohort_Generation/clinical_data_extraction_misc.R")
+source("clinical_data_extraction_misc.R")
 
 
 #--------------------------------------------#
@@ -130,18 +130,18 @@ df <- do.call("bind_rows", df_list2)
 
 ##### Variable Homogeneization ##### 
 
-df <- homogenize_variables(df)
+df <- homogenize_variables_detailed(df)
 
 
 ##### TXT files Creation ##### 
 
 ###### Extract dates from cel files ######
 
-celfiles <-list.files("/home/user/Downloads/CEL_Files")
+celfiles <-list.files("/CEL_Files")
 dates <- NULL
 
 for (x in celfiles) {
-  a <- get.celfile.dates(paste0("/home/user/Downloads/CEL_Files/", x))
+  a <- get.celfile.dates(paste0("/CEL_Files/", x))
   b <- as.character(a)
   dates <- c(dates, b)
 }
@@ -158,7 +158,7 @@ colnames(dataset) <- "dataset"
 dd <- merge(d, dataset, by.x = "GSM", by.y = 0)
 dd.necessary <- data.frame("GSM" = dd$GSM, "CEL_Date" = dd$date)
 
-saveRDS(dd.necessary, file ="/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/date_GSM.rds")
+saveRDS(dd.necessary, file ="date_GSM.rds")
 
 ###### File preparation ######
 
@@ -216,7 +216,7 @@ dups.noelim <- dups[!duplicated(dups[,c(3,4,5,6,8,9)]),]
 usable.t.df.filt.nodups <- usable.t.df.filt.nodups[!usable.t.df.filt.nodups$Row.names %in% dups.elim$Row.names,]
 usable.t.df.filt.nodups$Row.names <- NULL
 
-saveRDS(usable.t.df.filt.nodups, file ="/home/user/Documents/Files/Projects/Colorectal_Cancer_Superset/Results_Files/pheno_data_july2024.rds")
+saveRDS(usable.t.df.filt.nodups, file ="pheno_data_august2025.rds")
 
 ###### SUMMARY ######
 
@@ -253,8 +253,4 @@ summary_table_stage <- usable.t.df.filt %>%
     tp53_Na = sum(is.na(tp53_mut)))
 
 write.xlsx(summary_table_stage, "summary_stage_draft.xlsx")
-
-
-
-
 
